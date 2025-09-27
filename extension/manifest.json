@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Semantic Memory",
+  "description": "Local-first browsing memory with GPT-5 digests.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "Semantic Memory",
+    "default_popup": "src/ui/popup/index.html"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "scripting",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "options_page": "src/ui/options/index.html"
+}

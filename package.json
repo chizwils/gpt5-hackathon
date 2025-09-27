@@ -1,0 +1,44 @@
+{
+  "name": "semantic-memory-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:chrome": "vite --mode chrome",
+    "dev:firefox": "vite --mode firefox",
+    "build": "vite build",
+    "lint": "eslint .",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.37.1",
+    "clsx": "^2.1.0",
+    "dexie": "^4.0.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^14.2.1",
+    "@types/chrome": "^0.0.263",
+    "@types/dexie": "^1.3.4",
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.2.49",
+    "@types/react-dom": "^18.2.18",
+    "autoprefixer": "^10.4.18",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.34.1",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0",
+    "vitest": "^1.5.0",
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "@typescript-eslint/parser": "^7.8.0",
+    "@tailwindcss/line-clamp": "^0.4.4",
+    "@vitejs/plugin-react": "^4.2.1"
+  }
+}
