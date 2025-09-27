@@ -1,5 +1,5 @@
-import type { ChatMessage } from '../state/chat-store';
-import { SparkleIcon, UserIcon } from './tokens/icons';
+import type { ChatMessage } from '@ui/state';
+import { SparkleIcon, UserIcon } from '@ui/components/tokens';
 import { MessageMetadata } from './message-metadata';
 
 interface Props {

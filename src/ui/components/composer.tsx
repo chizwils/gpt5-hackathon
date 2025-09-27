@@ -1,7 +1,7 @@
 import { FormEvent } from 'react';
 import clsx from 'clsx';
-import { useChatStore } from '../state/chat-store';
-import { LightningIcon, SendIcon } from './tokens/icons';
+import { useChatStore } from '@ui/state';
+import { LightningIcon, SendIcon } from '@ui/components/tokens';
 
 const quickPrompts = [
   'Summarize the last 24h',

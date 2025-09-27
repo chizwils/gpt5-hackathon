@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useChatStore } from '../state/chat-store';
+import { useChatStore } from '@ui/state';
 import { MessageBubble } from './message-bubble';
 
 export const MessageList = () => {

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import clsx from 'clsx';
-import { useChatStore } from '../state/chat-store';
-import { formatRelativeTime } from '../hooks/use-relative-time';
+import { useChatStore } from '@ui/state';
+import { formatRelativeTime } from '@ui/hooks';
 
 export const HistorySidebar = () => {
   const threads = useChatStore((state) => state.threads);

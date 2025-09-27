@@ -18,3 +18,13 @@ Load the generated `dist/chrome/` directory in Chrome's extension page with deve
 - **Composer** provides quick-prompt chips and a send button styled like ChatGPT's composer.
 
 The UI is powered by React, TailwindCSS, Zustand, and Vite + @crxjs. Replace mock state in `src/ui/state/chat-store.ts` with live semantic memory APIs as they land.
+
+## GPT-5 Proxy
+
+Run the local mock GPT-5 proxy for development:
+
+```bash
+pnpm dev:proxy
+```
+
+The proxy currently returns mock responses; wire it to GPT-5 APIs as credentials become available.

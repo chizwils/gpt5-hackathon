@@ -1,5 +1,5 @@
-import type { ChatMessage } from '../state/chat-store';
-import { formatRelativeTime } from '../hooks/use-relative-time';
+import type { ChatMessage } from '@ui/state';
+import { formatRelativeTime } from '@ui/hooks';
 
 interface Props {
   message: ChatMessage;

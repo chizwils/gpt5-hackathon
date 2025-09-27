@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { ReactNode } from 'react';
+import { getRecentPages, seedDemoData, type PageRecord } from '@data';
+import type { BackgroundRequest, BackgroundResponse } from '@/types/background';
 
 export type ChatRole = 'user' | 'assistant' | 'system';
 
@@ -24,6 +26,8 @@ interface ChatStore {
   threads: ChatThread[];
   activeThreadId: string;
   composerValue: string;
+  hydrated: boolean;
+  hydrate: () => Promise<void>;
   setComposerValue: (next: string) => void;
   sendMessage: (value: string) => void;
   selectThread: (id: string) => void;
@@ -33,7 +37,10 @@ interface ChatStore {
 const now = new Date();
 const iso = (date: Date | number) => new Date(date).toISOString();
 
-const createId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+const createId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
 
 const demoThreads: ChatThread[] = [
   {
@@ -86,10 +93,86 @@ const demoThreads: ChatThread[] = [
   }
 ];
 
+const summarizeSnippet = (text: string) => {
+  if (!text) return 'No readable text captured yet. Switch to a page with content to capture.';
+  const collapsed = text.replace(/\s+/g, ' ').trim();
+  return collapsed.length > 320 ? `${collapsed.slice(0, 317)}…` : collapsed;
+};
+
+const safeHostname = (url: string) => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+};
+
+const createThreadFromPage = (page: PageRecord): ChatThread => {
+  const host = safeHostname(page.url);
+  const summary = page.summary?.trim() || summarizeSnippet(page.rawText);
+
+  const assistantMessage: ChatMessage = {
+    id: `${page.id}-assistant-snapshot`,
+    role: 'assistant',
+    content: summary,
+    createdAt: page.lastInteractionAt,
+    citations: page.snapshotPath
+      ? [
+          {
+            label: host ?? page.title ?? 'Snapshot',
+            href: page.snapshotPath
+          }
+        ]
+      : undefined
+  };
+
+  const systemMessage: ChatMessage = {
+    id: `${page.id}-system-intro`,
+    role: 'system',
+    createdAt: page.capturedAt,
+    content: `Captured "${page.title}"${host ? ` from ${host}` : ''} at ${new Date(page.capturedAt).toLocaleString()}.`
+  };
+
+  const tags = Array.from(
+    new Set([...(page.confidenceTags ?? []), ...(host ? [host] : [])])
+  );
+
+  return {
+    id: page.id,
+    title: page.title || host || page.url,
+    createdAt: page.capturedAt,
+    updatedAt: page.lastInteractionAt,
+    messages: [systemMessage, assistantMessage],
+    tags
+  };
+};
+
 export const useChatStore = create<ChatStore>((set, get) => ({
   threads: demoThreads,
   activeThreadId: demoThreads[0]?.id ?? '',
   composerValue: '',
+  hydrated: false,
+  hydrate: async () => {
+    if (get().hydrated) return;
+
+    let pages = await getRecentPages(30);
+    if (!pages.length) {
+      await seedDemoData();
+      pages = await getRecentPages(30);
+    }
+
+    if (!pages.length) {
+      set({ hydrated: true });
+      return;
+    }
+
+    const threads = pages.map(createThreadFromPage);
+    set({
+      threads,
+      activeThreadId: threads[0]?.id ?? get().activeThreadId,
+      hydrated: true
+    });
+  },
   setComposerValue: (next) => set({ composerValue: next }),
   sendMessage: (value) => {
     const trimmed = value.trim();
@@ -99,32 +182,94 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const thread = threads.find((t) => t.id === activeThreadId);
     if (!thread) return;
 
+    const nowIso = new Date().toISOString();
     const userMessage: ChatMessage = {
       id: `user-${createId()}`,
       role: 'user',
       content: trimmed,
-      createdAt: new Date().toISOString()
+      createdAt: nowIso
     };
 
+    const assistantId = `assistant-${createId()}`;
     const assistantMessage: ChatMessage = {
-      id: `assistant-${createId()}`,
+      id: assistantId,
       role: 'assistant',
-      content:
-        'Processing request locally... (Mock response: the assistant will provide semantic recall once integrated).',
-      createdAt: new Date().toISOString()
+      content: 'Thinking through your browsing history…',
+      createdAt: nowIso
     };
 
-    const updatedThreads = threads.map((t) =>
+    const nextThreads = threads.map((t) =>
       t.id === activeThreadId
         ? {
             ...t,
-            updatedAt: new Date().toISOString(),
+            updatedAt: nowIso,
             messages: [...t.messages, userMessage, assistantMessage]
           }
         : t
     );
 
-    set({ threads: updatedThreads, composerValue: '' });
+    set({ threads: nextThreads, composerValue: '' });
+
+    const updateAssistant = (updater: (message: ChatMessage) => ChatMessage) => {
+      set((state) => ({
+        threads: state.threads.map((t) =>
+          t.id === activeThreadId
+            ? {
+                ...t,
+                messages: t.messages.map((message) =>
+                  message.id === assistantId ? updater(message) : message
+                ),
+                updatedAt: new Date().toISOString()
+              }
+            : t
+        )
+      }));
+    };
+
+    const handleError = (errorText: string) => {
+      updateAssistant((message) => ({
+        ...message,
+        content: `⚠️ Unable to reach Semantic Memory right now. ${errorText}`
+      }));
+    };
+
+    try {
+      chrome.runtime.sendMessage<BackgroundRequest, BackgroundResponse>(
+        {
+          type: 'semantic-memory:query',
+          prompt: trimmed
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            handleError(chrome.runtime.lastError.message ?? 'Unknown error.');
+            return;
+          }
+          if (!response) {
+            handleError('No response from background worker.');
+            return;
+          }
+          if (response.type === 'semantic-memory:query:error') {
+            handleError(response.error);
+            return;
+          }
+
+          if (response.type === 'semantic-memory:query:success') {
+            const citations = response.data.contextPages.map((page) => ({
+              label: page.title,
+              href: `memory://page/${page.id}`
+            }));
+
+            updateAssistant((message) => ({
+              ...message,
+              content: response.data.text,
+              citations: citations.length ? citations : undefined
+            }));
+          }
+        }
+      );
+    } catch (error) {
+      handleError(error instanceof Error ? error.message : 'Unknown error.');
+    }
   },
   selectThread: (id) => {
     if (get().activeThreadId === id) return;

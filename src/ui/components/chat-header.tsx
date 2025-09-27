@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useChatStore } from '../state/chat-store';
-import { formatRelativeTime } from '../hooks/use-relative-time';
+import { useChatStore } from '@ui/state';
+import { formatRelativeTime } from '@ui/hooks';
 
 const statusPill = {
   base: 'inline-flex items-center gap-1 rounded-full border border-white/10 px-2.5 py-1 text-xs text-slate-300',
