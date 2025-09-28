@@ -43,6 +43,32 @@ export type MemoryEventType =
   | 'manual_capture'
   | 'capture_toggle';
 
+export interface ContentAnalysisRecord {
+  id: string;
+  pageId: string;
+  analyzedAt: string;
+  mainContent: string;
+  title: string;
+  summary: string;
+  contentType: string;
+  primaryTopic: string;
+  subTopics: string[];
+  knowledgeDomain: string;
+  keyInsights: string[];
+  actionableItems: string[];
+  references: object[];
+  codeSnippets: object[];
+  difficultyLevel: string;
+  learningObjectives: string[];
+  prerequisites: string[];
+  nextSteps: string[];
+  researchPhase: string;
+  problemSolving: object | null;
+  contentQuality: number;
+  relevanceToUser: number;
+  informationDensity: number;
+}
+
 export interface PageRecord {
   id: string;
   url: string;
@@ -132,4 +158,5 @@ export interface MemoryDatabaseSchema {
   mediaSessions: Table<MediaSessionRecord, string>;
   settings: Table<SettingRecord, string>;
   timelineEntries: Table<TimelineEntryRecord, string>;
+  contentAnalyses: Table<ContentAnalysisRecord, string>;
 }

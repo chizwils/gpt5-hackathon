@@ -14,6 +14,8 @@ import { registerDownloadObserver } from './download-observer';
 import { runSessionAggregation } from './recap-aggregator';
 import type { ContentCapturePayload, ContentScriptMessage } from '@/types/capture';
 import type { BackgroundRequest, BackgroundPush } from '@/types/background';
+import { getCachedDailySummary } from './daily-summary-service';
+import { analyzeContentWithGPT5 } from '@data/content-analysis';
 import type { EmbeddingResponse } from '@/workers/embedding-worker';
 
 declare global {
@@ -300,7 +302,19 @@ const buildEvents = (
   return events;
 };
 
-const SYSTEM_PROMPT = `You are Semantic Memory, a local-first assistant. Answer the user's question using the provided context from their browsing history. Be concise, cite page titles when relevant, and prefer summaries over verbatim quotes.`;
+const SYSTEM_PROMPT = `You are Semantic Memory, a friendly assistant that helps people remember what they were browsing.
+
+Your job is simple: help users quickly recall their browsing activity in a natural, conversational way. Be like a helpful friend who was looking over their shoulder.
+
+Guidelines:
+- Keep responses short and casual (2-3 sentences)
+- Focus on what they actually looked at, not deep psychological analysis
+- Use friendly, everyday language
+- Help them feel confident about closing tabs by summarizing what they found
+- Only mention patterns if they're obvious and helpful
+- Skip the academic analysis - just be helpful and clear
+
+Remember: People just want to remember "what was I looking at?" and "is it safe to close this tab?"`;
 
 const pushMessage = (message: BackgroundPush) => {
   try {
@@ -313,10 +327,26 @@ const pushMessage = (message: BackgroundPush) => {
 const handleQueryStream = async ({ prompt, threadId, assistantMessageId }: Extract<BackgroundRequest, { type: 'semantic-memory:query' }>) => {
   try {
     const { contextText, contextPages, contextSummaries } = await buildPromptContext(prompt);
+    
+    // Filter context to only include truly relevant sources
+    const relevantSummaries = contextSummaries.filter(summary => {
+      const queryLower = prompt.toLowerCase();
+      const titleLower = summary.title.toLowerCase();
+      const snippetLower = summary.snippet.toLowerCase();
+      
+      // Extract key terms from the query
+      const queryTerms = queryLower.split(/\s+/).filter(term => term.length > 2);
+      
+      // Check if the content is actually relevant to the query
+      return queryTerms.some(term => 
+        titleLower.includes(term) || snippetLower.includes(term)
+      );
+    });
+    
     const composedPrompt = contextText
       ? `${SYSTEM_PROMPT}
 
-Context:
+Context (${relevantSummaries.length} relevant sources):
 ${contextText}
 
 User question: ${prompt}`
@@ -350,7 +380,7 @@ No context available yet. User question: ${prompt}`;
             text: summary?.text ?? '',
             tokensEstimated: summary?.tokensEstimated,
             contextPages,
-            contextItems: contextSummaries
+            contextItems: relevantSummaries
           });
         },
         onError: (error) => {
@@ -416,6 +446,28 @@ const handleCapture = async (payload: ContentCapturePayload, sender: chrome.runt
     chunks,
     events: buildEvents(payload, tabId)
   });
+
+  // Perform intelligent content analysis with GPT-5
+  try {
+    const contentAnalysis = await analyzeContentWithGPT5(
+      payload.url,
+      payload.title || sender.tab?.title || payload.url,
+      payload.text
+    );
+    
+    // Store the analysis
+    contentAnalysis.pageId = pageId;
+    await db.contentAnalyses.add(contentAnalysis);
+    
+    console.log('[SemanticMemory] GPT-5 content analysis completed:', {
+      pageId,
+      contentType: contentAnalysis.contentType,
+      primaryTopic: contentAnalysis.primaryTopic,
+      quality: contentAnalysis.contentQuality
+    });
+  } catch (error) {
+    console.warn('[SemanticMemory] GPT-5 content analysis failed:', error);
+  }
 
   if (payload.highlights.length) {
     const highlights = payload.highlights.slice(0, 3);
@@ -500,6 +552,20 @@ chrome.runtime.onMessage.addListener((message: ContentScriptMessage | Background
     void handleQueryStream(request);
     sendResponse({ type: 'semantic-memory:query:accepted' });
     return false;
+  }
+
+  if (message.type === 'semantic-memory:daily-summary') {
+    void getCachedDailySummary()
+      .then((summary) => {
+        sendResponse({ type: 'semantic-memory:daily-summary:success', summary });
+      })
+      .catch((error) => {
+        sendResponse({ 
+          type: 'semantic-memory:daily-summary:error', 
+          error: error.message 
+        });
+      });
+    return true;
   }
 
   if (message.type === 'semantic-memory:capture') {

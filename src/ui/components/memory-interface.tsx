@@ -5,9 +5,22 @@ import { LightningIcon, SendIcon, SparkleIcon, UserIcon } from '@ui/components/t
 import { MessageBubble } from './message-bubble';
 import clsx from 'clsx';
 
+interface DailySummary {
+  data: {
+    totalPages: number;
+    topicCounts: Array<{ topic: string; count: number; pages: string[] }>;
+    readingTime: number;
+    highlights: string[];
+  };
+  aiInsights: string;
+  generatedAt: string;
+}
+
 export const MemoryInterface = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showConversation, setShowConversation] = useState(false);
+  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
   
   const send = useChatStore((state) => state.sendMessage);
   const threads = useChatStore((state) => state.threads);
@@ -46,6 +59,26 @@ export const MemoryInterface = () => {
     handleSearch(searchQuery);
   };
 
+  const handleDailySummary = async () => {
+    setLoadingSummary(true);
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'semantic-memory:daily-summary'
+      });
+      
+      if (response.type === 'semantic-memory:daily-summary:success') {
+        setDailySummary(response.summary);
+        setShowConversation(true);
+      } else {
+        console.error('Daily summary failed:', response.error);
+      }
+    } catch (error) {
+      console.error('Failed to get daily summary:', error);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
   return (
     <div className="flex h-full w-full flex-col bg-white">
       {/* Header */}
@@ -59,14 +92,27 @@ export const MemoryInterface = () => {
           </div>
         </div>
         
-        {showConversation && (
-          <button
-            onClick={handleNewSearch}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition hover:bg-gray-50"
-          >
-            New chat
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {!showConversation && (
+            <button
+              onClick={handleDailySummary}
+              disabled={loadingSummary}
+              className="flex items-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+            >
+              <SparkleIcon className="h-4 w-4" />
+              {loadingSummary ? 'Generating...' : 'Daily Summary'}
+            </button>
+          )}
+          
+          {showConversation && (
+            <button
+              onClick={handleNewSearch}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition hover:bg-gray-50"
+            >
+              New chat
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -75,6 +121,62 @@ export const MemoryInterface = () => {
         <div className="flex flex-1 flex-col">
           <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 160px)' }}>
             <div className="mx-auto max-w-4xl">
+              {/* Daily Summary Display */}
+              {dailySummary && (
+                <div className="border-b border-gray-100 px-4 py-6 bg-blue-50">
+                  <div className="mx-auto flex max-w-3xl gap-4">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+                        <SparkleIcon className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 space-y-3">
+                      <div className="text-sm font-medium text-gray-900">
+                        Daily Summary
+                      </div>
+                      <div className="space-y-4">
+                        {/* Statistics */}
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <div className="font-medium text-gray-900">{dailySummary.data.totalPages}</div>
+                            <div className="text-gray-600">Pages visited</div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">{dailySummary.data.readingTime}m</div>
+                            <div className="text-gray-600">Reading time</div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">{dailySummary.data.topicCounts.length}</div>
+                            <div className="text-gray-600">Topics explored</div>
+                          </div>
+                        </div>
+
+                        {/* Top Topics */}
+                        <div>
+                          <div className="text-sm font-medium text-gray-700 mb-2">Main Research Areas:</div>
+                          <div className="flex flex-wrap gap-2">
+                            {dailySummary.data.topicCounts.slice(0, 4).map((topic, i) => (
+                              <span key={i} className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                {topic.topic} ({topic.count})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* AI Insights */}
+                        <div>
+                          <div className="text-sm font-medium text-gray-700 mb-2">GPT-5 Analysis:</div>
+                          <div className="prose prose-sm max-w-none text-gray-800 leading-relaxed">
+                            {dailySummary.aiInsights}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {messages.filter(msg => msg.role !== 'system').map((message, index) => (
                 <div
                   key={message.id}
