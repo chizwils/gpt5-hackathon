@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useChatStore } from '../state/chat-store';
-import { formatRelativeTime } from '../hooks/use-relative-time';
+import { useChatStore } from '@ui/state';
+import { formatRelativeTime } from '@ui/hooks';
 
 const statusPill = {
   base: 'inline-flex items-center gap-1 rounded-full border border-white/10 px-2.5 py-1 text-xs text-slate-300',
@@ -21,6 +21,8 @@ export const ChatHeader = () => {
       tags: thread.tags ?? []
     };
   }, [thread]);
+
+  const isStreaming = thread?.messages.some((message) => message.status === 'streaming');
 
   if (!thread) {
     return (
@@ -49,6 +51,12 @@ export const ChatHeader = () => {
         ) : null}
       </div>
       <div className="flex items-center gap-3">
+        {isStreaming ? (
+          <span className={`${statusPill.base} ${statusPill.live}`}>
+            <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+            Streaming
+          </span>
+        ) : null}
         <span className={`${statusPill.base} ${statusPill.paused}`}>
           <span className="h-2 w-2 rounded-full bg-yellow-400" />
           Capture paused
