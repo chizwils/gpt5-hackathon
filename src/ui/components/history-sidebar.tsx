@@ -118,8 +118,9 @@ export const HistorySidebar = () => {
       <section className="mt-6 border-t border-white/5 pt-4 text-sm">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Recent Activity</h3>
         {activity.length ? (
-          <ul className="space-y-3 text-xs">
-            {activity.map((entry) => {
+          <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20 hover:scrollbar-thumb-white/30">
+            <ul className="space-y-3 text-xs pr-2">
+              {activity.map((entry) => {
               const metadata = entry.metadata as {
                 tabs?: Array<{ title?: string; url?: string }>;
                 forms?: Array<{ type?: string; formId?: string; action?: string; fieldCount?: number }>;
@@ -182,8 +183,9 @@ export const HistorySidebar = () => {
                   ) : null}
                 </li>
               );
-            })}
-          </ul>
+              })}
+            </ul>
+          </div>
         ) : (
           <p className="text-[11px] text-slate-500">Behaviour insights will appear here as you browse.</p>
         )}
@@ -191,25 +193,27 @@ export const HistorySidebar = () => {
       <section className="mt-4 space-y-3 border-t border-white/5 pt-4 text-sm">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Highlights</h3>
         {highlightEntries.length ? (
-          <ul className="space-y-3 text-xs">
-            {highlightEntries.map((entry) => {
-              const metadata = entry.metadata as { url?: string } | undefined;
-              return (
-                <li key={entry.id} className="space-y-2 rounded-lg border border-primary/20 bg-primary/10 p-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-slate-100">{entry.title}</span>
-                    <span className="text-[11px] text-primary/70">{formatRelativeTime(entry.createdAt)}</span>
-                  </div>
-                  {entry.description ? (
-                    <p className="text-[11px] text-slate-100">{entry.description}</p>
-                  ) : null}
-                  {metadata?.url ? (
-                    <p className="truncate text-[10px] text-primary/70">{getDomain(metadata.url)}</p>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
+          <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/30">
+            <ul className="space-y-3 text-xs pr-2">
+              {highlightEntries.map((entry) => {
+                const metadata = entry.metadata as { url?: string } | undefined;
+                return (
+                  <li key={entry.id} className="space-y-2 rounded-lg border border-primary/20 bg-primary/10 p-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-slate-100">{entry.title}</span>
+                      <span className="text-[11px] text-primary/70">{formatRelativeTime(entry.createdAt)}</span>
+                    </div>
+                    {entry.description ? (
+                      <p className="text-[11px] text-slate-100">{entry.description}</p>
+                    ) : null}
+                    {metadata?.url ? (
+                      <p className="truncate text-[10px] text-primary/70">{getDomain(metadata.url)}</p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         ) : (
           <p className="text-[11px] text-slate-500">No highlights captured yet.</p>
         )}

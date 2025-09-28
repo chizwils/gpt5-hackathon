@@ -12,6 +12,15 @@ const buildServer = async (): Promise<FastifyInstance> => {
   });
 
   app.get('/health', async () => ({ status: 'ok', time: new Date().toISOString() }));
+  
+  // Debug endpoint to check environment
+  app.get('/debug', async () => ({
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+    keyLength: process.env.OPENAI_API_KEY?.length || 0,
+    envKeys: Object.keys(process.env).filter(k => k.includes('OPENAI')),
+    nodeEnv: process.env.NODE_ENV
+  }));
+  
   await app.register(registerRoutes);
 
   return app;

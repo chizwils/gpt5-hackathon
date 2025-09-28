@@ -1,18 +1,14 @@
 import { FormEvent } from 'react';
 import clsx from 'clsx';
 import { useChatStore } from '@ui/state';
+import { useActivitySuggestions } from '@ui/hooks';
 import { LightningIcon, SendIcon } from '@ui/components/tokens';
-
-const quickPrompts = [
-  'Summarize the last 24h',
-  'Show pages about GPT-5 vision',
-  'Cluster research on browser OCR'
-];
 
 export const Composer = () => {
   const value = useChatStore((state) => state.composerValue);
   const setValue = useChatStore((state) => state.setComposerValue);
   const send = useChatStore((state) => state.sendMessage);
+  const { suggestions, isLoading } = useActivitySuggestions();
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -49,17 +45,30 @@ export const Composer = () => {
           </button>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
-          {quickPrompts.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              onClick={() => setValue(prompt)}
-              className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300 transition hover:border-primary/50 hover:text-primary"
-            >
-              <LightningIcon className="h-3.5 w-3.5" />
-              {prompt}
-            </button>
-          ))}
+          {isLoading ? (
+            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-500">
+              <LightningIcon className="h-3.5 w-3.5 animate-pulse" />
+              Loading suggestions...
+            </div>
+          ) : (
+            suggestions.map((suggestion) => (
+              <button
+                key={suggestion.text}
+                type="button"
+                onClick={() => setValue(suggestion.text)}
+                className={clsx(
+                  'inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300 transition hover:border-primary/50 hover:text-primary',
+                  suggestion.category === 'highlights' && 'border-primary/20 bg-primary/5 text-primary',
+                  suggestion.category === 'forms' && 'border-accent/20 bg-accent/5 text-accent',
+                  suggestion.category === 'domains' && 'border-orange-500/20 bg-orange-500/5 text-orange-300',
+                  suggestion.category === 'topics' && 'border-purple-500/20 bg-purple-500/5 text-purple-300'
+                )}
+              >
+                <LightningIcon className="h-3.5 w-3.5" />
+                {suggestion.text}
+              </button>
+            ))
+          )}
         </div>
       </form>
       <p className="mt-3 text-[11px] text-slate-500">

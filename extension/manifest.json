@@ -4,8 +4,7 @@
   "description": "Local-first browsing memory with GPT-5 digests.",
   "version": "0.1.0",
   "action": {
-    "default_title": "Semantic Memory",
-    "default_popup": "src/ui/popup/index.html"
+    "default_title": "Toggle Semantic Memory"
   },
   "background": {
     "service_worker": "src/background/index.ts",
@@ -52,6 +51,15 @@
         "src/content/index.ts"
       ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/ui/popup/index.html",
+        "src/ui/popup/*"
+      ],
+      "matches": ["<all_urls>"]
     }
   ]
 }
