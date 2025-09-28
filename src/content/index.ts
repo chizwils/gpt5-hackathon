@@ -1,9 +1,20 @@
-import type { ContentCapturePayload, HighlightCapture, ContentScriptMessage } from '@/types/capture';
+import type {
+  ContentCapturePayload,
+  ContentScriptMessage,
+  FormEventCapture,
+  HighlightCapture,
+  PipEventCapture
+} from '@/types/capture';
 
 const startTimestamp = Date.now();
 let maxScrollDepth = 0;
 let captureSent = false;
 const highlights = new Map<string, HighlightCapture>();
+const formEvents: FormEventCapture[] = [];
+const pipEvents: PipEventCapture[] = [];
+const trackedForms = new Set<string>();
+
+const incognitoContext = typeof chrome !== 'undefined' && Boolean(chrome.extension?.inIncognitoContext);
 
 const updateScrollDepth = () => {
   const { scrollHeight, clientHeight, scrollTop } = document.documentElement;
@@ -34,6 +45,71 @@ const captureSelection = () => {
 };
 
 document.addEventListener('mouseup', captureSelection);
+
+const getFormIdentifier = (form: HTMLFormElement) =>
+  form.id || form.getAttribute('name') || form.action || `form-${trackedForms.size + 1}`;
+
+document.addEventListener(
+  'focusin',
+  (event) => {
+    const target = event.target as HTMLElement | null;
+    const form = target?.closest('form');
+    if (!form) return;
+    const id = getFormIdentifier(form);
+    if (trackedForms.has(id)) return;
+    trackedForms.add(id);
+    formEvents.push({
+      type: 'start',
+      timestamp: new Date().toISOString(),
+      formId: id,
+      action: form.action,
+      fieldCount: typeof form.elements?.length === 'number' ? form.elements.length : undefined
+    });
+  },
+  { capture: true }
+);
+
+document.addEventListener(
+  'submit',
+  (event) => {
+    const form = event.target as HTMLFormElement | null;
+    if (!form) return;
+    const id = getFormIdentifier(form);
+    formEvents.push({
+      type: 'submit',
+      timestamp: new Date().toISOString(),
+      formId: id,
+      action: form.action,
+      fieldCount: typeof form.elements?.length === 'number' ? form.elements.length : undefined
+    });
+  },
+  true
+);
+
+const recordPipEvent = (type: PipEventCapture['type'], target: EventTarget | null) => {
+  const mediaType = target instanceof HTMLVideoElement ? 'video' : undefined;
+  pipEvents.push({
+    type,
+    timestamp: new Date().toISOString(),
+    mediaType
+  });
+};
+
+document.addEventListener(
+  'enterpictureinpicture',
+  (event) => {
+    recordPipEvent('enter', event.target ?? null);
+  },
+  true
+);
+
+document.addEventListener(
+  'leavepictureinpicture',
+  (event) => {
+    recordPipEvent('leave', event.target ?? null);
+  },
+  true
+);
 
 type SendMessage = ContentScriptMessage;
 
@@ -87,7 +163,10 @@ const buildCapturePayload = (): ContentCapturePayload => {
     scrollDepth: Number.isFinite(maxScrollDepth) ? Number(maxScrollDepth.toFixed(3)) : 0,
     highlights: Array.from(highlights.values()).slice(0, 8),
     reasons,
-    readingTimeSeconds: Math.round((Date.now() - startTimestamp) / 1000)
+    readingTimeSeconds: Math.round((Date.now() - startTimestamp) / 1000),
+    formEvents: [...formEvents],
+    pipEvents: [...pipEvents],
+    incognitoContext
   };
 };
 

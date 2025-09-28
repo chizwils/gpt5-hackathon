@@ -3,6 +3,20 @@ export interface HighlightCapture {
   color?: string;
 }
 
+export interface FormEventCapture {
+  type: 'start' | 'submit';
+  timestamp: string;
+  formId?: string;
+  action?: string;
+  fieldCount?: number;
+}
+
+export interface PipEventCapture {
+  type: 'enter' | 'leave';
+  timestamp: string;
+  mediaType?: string;
+}
+
 export interface ContentCapturePayload {
   url: string;
   title: string;
@@ -17,6 +31,9 @@ export interface ContentCapturePayload {
   highlights: HighlightCapture[];
   reasons: string[];
   readingTimeSeconds: number;
+  formEvents: FormEventCapture[];
+  pipEvents: PipEventCapture[];
+  incognitoContext: boolean;
 }
 
 export interface CaptureInitPing {

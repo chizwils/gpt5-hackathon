@@ -6,7 +6,8 @@ import type {
   MemoryEventRecord,
   PageRecord,
   SessionRecord,
-  SettingRecord
+  SettingRecord,
+  TimelineEntryRecord
 } from './schema';
 
 class SemanticMemoryDatabase extends Dexie implements MemoryDatabaseSchema {
@@ -16,18 +17,38 @@ class SemanticMemoryDatabase extends Dexie implements MemoryDatabaseSchema {
   sessions!: Table<SessionRecord, string>;
   mediaSessions!: Table<MediaSessionRecord, string>;
   settings!: Table<SettingRecord, string>;
+  timelineEntries!: Table<TimelineEntryRecord, string>;
 
   constructor() {
     super('semantic_memory');
 
     this.version(1).stores({
-      pages:
-        '&id, url, capturedAt, closedAt, sessionId, topicLabel, windowId, tabId, tabGroupId, lastInteractionAt, visitCount',
+      pages: '&id, url, capturedAt, closedAt, sessionId, topicLabel, windowId, tabId, tabGroupId, lastInteractionAt, visitCount',
       chunks: '&id, pageId, order',
       events: '&id, pageId, type, sessionId, timestamp',
       sessions: '&id, origin, startedAt, endedAt, topicLabel',
       mediaSessions: '&id, pageId, kind, startedAt, endedAt',
       settings: '&key'
+    });
+
+    this.version(2).stores({
+      pages: '&id, url, capturedAt, closedAt, sessionId, topicLabel, windowId, tabId, tabGroupId, lastInteractionAt, visitCount',
+      chunks: '&id, pageId, order',
+      events: '&id, pageId, type, sessionId, timestamp',
+      sessions: '&id, origin, startedAt, endedAt, topicLabel',
+      mediaSessions: '&id, pageId, kind, startedAt, endedAt',
+      settings: '&key',
+      timelineEntries: '&id, type, createdAt, tags, relatedPageIds'
+    });
+
+    this.version(3).stores({
+      pages: '&id, url, capturedAt, closedAt, sessionId, topicLabel, windowId, tabId, tabGroupId, lastInteractionAt, visitCount',
+      chunks: '&id, pageId, order',
+      events: '&id, pageId, type, sessionId, timestamp',
+      sessions: '&id, origin, startedAt, endedAt, topicLabel',
+      mediaSessions: '&id, pageId, kind, startedAt, endedAt',
+      settings: '&key',
+      timelineEntries: '&id, type, createdAt, sessionId, tags, relatedPageIds'
     });
 
     this.pages.mapToClass(class {});
@@ -36,6 +57,7 @@ class SemanticMemoryDatabase extends Dexie implements MemoryDatabaseSchema {
     this.sessions.mapToClass(class {});
     this.mediaSessions.mapToClass(class {});
     this.settings.mapToClass(class {});
+    this.timelineEntries.mapToClass(class {});
   }
 }
 
@@ -47,5 +69,6 @@ export type {
   MemoryEventRecord,
   SessionRecord,
   MediaSessionRecord,
-  SettingRecord
+  SettingRecord,
+  TimelineEntryRecord
 };

@@ -10,8 +10,7 @@ export const responsesRequestSchema = z.object({
       metadata: z.record(z.any()).optional()
     })
     .optional(),
-  stream: z.boolean().default(false),
-  temperature: z.number().min(0).max(1).default(0.2)
+  stream: z.boolean().default(false)
 });
 
 export const responsesReplySchema = z.object({

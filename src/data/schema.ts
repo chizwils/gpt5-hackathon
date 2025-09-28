@@ -32,8 +32,11 @@ export type MemoryEventType =
   | 'media_pause'
   | 'media_end'
   | 'picture_in_picture'
+  | 'pip_enter'
+  | 'pip_leave'
   | 'form_start'
   | 'form_submit'
+  | 'form_autosave'
   | 'clipboard_copy'
   | 'download_start'
   | 'download_complete'
@@ -107,6 +110,18 @@ export interface SettingRecord {
   value: unknown;
 }
 
+export interface TimelineEntryRecord {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+  relatedPageIds: string[];
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  sessionId?: string;
+}
+
 import { type Table } from 'dexie';
 
 export interface MemoryDatabaseSchema {
@@ -116,4 +131,5 @@ export interface MemoryDatabaseSchema {
   sessions: Table<SessionRecord, string>;
   mediaSessions: Table<MediaSessionRecord, string>;
   settings: Table<SettingRecord, string>;
+  timelineEntries: Table<TimelineEntryRecord, string>;
 }

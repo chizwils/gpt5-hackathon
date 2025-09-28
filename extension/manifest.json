@@ -12,15 +12,35 @@
     "type": "module"
   },
   "permissions": [
-    "storage",
+    "activeTab",
+    "bookmarks",
+    "downloads",
+    "downloads.open",
+    "readingList",
+    "sessions",
     "scripting",
-    "tabs",
-    "activeTab"
+    "storage",
+    "tabGroups",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
   "options_page": "src/ui/options/index.html",
+  "commands": {
+    "semantic-memory.close-tabs-to-right": {
+      "description": "Mark when the user closes tabs to the right",
+      "suggested_key": {
+        "default": "Ctrl+Shift+."
+      }
+    },
+    "semantic-memory.close-other-tabs": {
+      "description": "Mark when the user closes other tabs",
+      "suggested_key": {
+        "default": "Ctrl+Shift+Backslash"
+      }
+    }
+  },
   "content_scripts": [
     {
       "matches": [

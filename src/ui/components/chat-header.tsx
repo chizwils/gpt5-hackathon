@@ -22,6 +22,8 @@ export const ChatHeader = () => {
     };
   }, [thread]);
 
+  const isStreaming = thread?.messages.some((message) => message.status === 'streaming');
+
   if (!thread) {
     return (
       <header className="flex items-center justify-between border-b border-white/5 bg-surface px-6 py-4 text-sm text-slate-300">
@@ -49,6 +51,12 @@ export const ChatHeader = () => {
         ) : null}
       </div>
       <div className="flex items-center gap-3">
+        {isStreaming ? (
+          <span className={`${statusPill.base} ${statusPill.live}`}>
+            <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+            Streaming
+          </span>
+        ) : null}
         <span className={`${statusPill.base} ${statusPill.paused}`}>
           <span className="h-2 w-2 rounded-full bg-yellow-400" />
           Capture paused

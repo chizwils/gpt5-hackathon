@@ -1,35 +1,18 @@
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
-import { responsesRequestSchema, responsesReplySchema, fileIndexRequestSchema } from './types';
+import fastifyCors from '@fastify/cors';
+import { registerRoutes } from './routes';
 
-const buildServer = (): FastifyInstance => {
+const buildServer = async (): Promise<FastifyInstance> => {
   const app = Fastify({ logger: true });
 
+  await app.register(fastifyCors, {
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', /chrome-extension:\/\/.*/],
+    methods: ['POST', 'GET', 'OPTIONS']
+  });
+
   app.get('/health', async () => ({ status: 'ok', time: new Date().toISOString() }));
-
-  app.post('/responses', async (request, reply) => {
-    const body = responsesRequestSchema.parse(request.body ?? {});
-
-    const preview = body.prompt.length > 120 ? `${body.prompt.slice(0, 117)}...` : body.prompt;
-
-    const response = responsesReplySchema.parse({
-      id: `mock-res-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      text: `Mock GPT-5 response based on: "${preview}". Connect real GPT-5 Responses API here.`,
-      tokensEstimated: Math.ceil(preview.split(/\s+/).length * 1.3)
-    });
-
-    await reply.status(200).send(response);
-  });
-
-  app.post('/file-search/index', async (request, reply) => {
-    const body = fileIndexRequestSchema.parse(request.body ?? {});
-    await reply.status(202).send({
-      accepted: body.items.length,
-      strategy: body.strategy,
-      message: 'Mock index accepted. Wire to GPT-5 File Search uploads.'
-    });
-  });
+  await app.register(registerRoutes);
 
   return app;
 };
@@ -37,7 +20,7 @@ const buildServer = (): FastifyInstance => {
 const start = async () => {
   const port = Number(process.env.GPT5_PROXY_PORT ?? 8788);
   const host = process.env.GPT5_PROXY_HOST ?? '0.0.0.0';
-  const server = buildServer();
+  const server = await buildServer();
 
   try {
     await server.listen({ port, host });

@@ -6,7 +6,8 @@ import type {
   MemoryEventRecord,
   PageRecord,
   SessionRecord,
-  SettingRecord
+  SettingRecord,
+  TimelineEntryRecord
 } from './schema';
 
 const cryptoRef: Crypto | undefined =
@@ -23,6 +24,18 @@ type NewSession = Omit<SessionRecord, 'id' | 'pageIds' | 'startedAt'> & {
   startedAt?: string;
   pageIds?: string[];
 };
+
+interface TimelineEntryInput {
+  id?: string;
+  type: TimelineEntryRecord['type'];
+  title: string;
+  description?: string;
+  tags?: string[];
+  relatedPageIds?: string[];
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
+  sessionId?: string;
+}
 
 type NewPage = Omit<PageRecord, 'id' | 'confidenceTags' | 'visitCount' | 'lastInteractionAt'> & {
   id?: string;
@@ -173,6 +186,43 @@ export const getSessionTimeline = async (sessionId: string) => {
   return db.events.where('sessionId').equals(sessionId).sortBy('timestamp');
 };
 
+export const getPagesByIds = async (ids: string[]) => {
+  if (!ids.length) return [];
+  const pages = await db.pages.bulkGet(ids);
+  const pageMap = new Map(ids.map((id, index) => [id, pages[index] ?? null]));
+  return ids.map((id) => pageMap.get(id)).filter(Boolean);
+};
+
+export const recordTimelineEntry = async (entry: TimelineEntryInput) => {
+  const record: TimelineEntryRecord = {
+    id: entry.id ?? createId(),
+    type: entry.type,
+    title: entry.title,
+    description: entry.description,
+    tags: entry.tags ?? [],
+    relatedPageIds: entry.relatedPageIds ?? [],
+    metadata: entry.metadata ?? {},
+    createdAt: entry.createdAt ?? new Date().toISOString(),
+    sessionId: entry.sessionId
+  };
+
+  await db.timelineEntries.put(record);
+
+  if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+    try {
+      void chrome.runtime.sendMessage({ type: 'semantic-memory:timeline:new', entry: record });
+    } catch (error) {
+      console.debug('Failed to broadcast timeline entry', error);
+    }
+  }
+
+  return record.id;
+};
+
+export const getRecentTimelineEntries = async (limit = 20) => {
+  return db.timelineEntries.orderBy('createdAt').reverse().limit(limit).toArray();
+};
+
 export const upsertSetting = async <Value>(key: SettingRecord['key'], value: Value) => {
   await db.settings.put({ key, value });
 };
@@ -185,5 +235,67 @@ export const getSetting = async <Value>(key: SettingRecord['key']) => {
 export const resetDatabase = async () => {
   await db.transaction('rw', db.tables, async () => {
     await Promise.all(db.tables.map((table) => table.clear()));
+  });
+};
+
+export const updatePagesByTabId = async (tabId: number, updates: Partial<PageRecord>) => {
+  await db.pages
+    .where('tabId')
+    .equals(tabId)
+    .modify((page) => {
+      Object.assign(page, updates, {
+        lastInteractionAt: updates.lastInteractionAt ?? new Date().toISOString()
+      });
+    });
+};
+
+export const appendConfidenceTagByTabIds = async (tabIds: number[], tag: ConfidenceTag) => {
+  const uniqueIds = Array.from(new Set(tabIds)).filter((id) => Number.isFinite(id));
+  await Promise.all(
+    uniqueIds.map((tabId) =>
+      db.pages
+        .where('tabId')
+        .equals(tabId)
+        .modify((page) => {
+          if (!page.confidenceTags.includes(tag)) {
+            page.confidenceTags = [...page.confidenceTags, tag];
+          }
+        })
+    )
+  );
+};
+
+export const markTabsClosed = async (tabIds: number[], closedAt: string) => {
+  const uniqueIds = Array.from(new Set(tabIds)).filter((id) => Number.isFinite(id));
+  await Promise.all(
+    uniqueIds.map((tabId) =>
+      db.pages
+        .where('tabId')
+        .equals(tabId)
+        .modify((page) => {
+          page.closedAt = closedAt;
+          page.lastInteractionAt = closedAt;
+        })
+    )
+  );
+};
+
+export const reopenPageByUrl = async (
+  url: string,
+  tabId: number,
+  windowId: number,
+  reopenedAt: string
+) => {
+  if (!url) return;
+  const matches = await db.pages.where('url').equals(url).sortBy('capturedAt');
+  const existing = matches[matches.length - 1];
+  if (!existing) return;
+
+  await db.pages.update(existing.id, {
+    tabId,
+    windowId,
+    closedAt: undefined,
+    lastInteractionAt: reopenedAt,
+    visitCount: existing.visitCount + 1
   });
 };

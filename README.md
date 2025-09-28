@@ -28,3 +28,5 @@ pnpm dev:proxy
 ```
 
 The proxy currently returns mock responses; wire it to GPT-5 APIs as credentials become available.
+
+Set `OPENAI_API_KEY` in `.env.local` (or shell) before running `pnpm dev:proxy` to forward real GPT-5 Responses calls. Without the key the proxy streams mock data.

@@ -7,9 +7,10 @@
     "dev:chrome": "vite --mode chrome",
     "dev:firefox": "vite --mode firefox",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint --ext .ts,.tsx,.js,.jsx .",
     "test": "vitest",
-    "dev:proxy": "tsx src/backend/proxy/server.ts"
+    "dev:proxy": "tsx src/backend/proxy/server.ts",
+    "start:proxy": "node --env-file=.env.local --import tsx src/backend/proxy/server.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.37.1",
@@ -20,7 +21,9 @@
     "zustand": "^4.5.2",
     "fastify": "^4.28.1",
     "zod": "^3.23.8",
-    "openai": "^4.55.0"
+    "openai": "^4.55.0",
+    "eventsource-parser": "^1.1.0",
+    "@fastify/cors": "^9.0.1"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.0.0",

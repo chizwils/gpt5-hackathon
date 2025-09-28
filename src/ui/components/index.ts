@@ -5,3 +5,4 @@ export * from './history-sidebar';
 export * from './message-bubble';
 export * from './message-list';
 export * from './message-metadata';
+export * from './session-recap-panel';

@@ -1,12 +1,15 @@
-import { defineConfig, loadEnv } from 'vite';
+/* eslint-env node */
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { crx } from '@crxjs/vite-plugin';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import manifest from './extension/manifest.json';
 
+const rootDir = dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
   const target = mode === 'firefox' ? 'firefox' : 'chrome';
 
   return {
@@ -17,10 +20,11 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@': resolve(__dirname, 'src'),
-        '@ui': resolve(__dirname, 'src/ui'),
-        '@data': resolve(__dirname, 'src/data')
-      }
+        '@': resolve(rootDir, 'src'),
+        '@ui': resolve(rootDir, 'src/ui'),
+        '@data': resolve(rootDir, 'src/data')
+      },
+      dedupe: ['react', 'react-dom']
     },
     build: {
       outDir: `dist/${target}`
