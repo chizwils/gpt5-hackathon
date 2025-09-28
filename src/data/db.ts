@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type {
   ChunkRecord,
+  ContentAnalysisRecord,
   MediaSessionRecord,
   MemoryDatabaseSchema,
   MemoryEventRecord,
@@ -18,6 +19,7 @@ class SemanticMemoryDatabase extends Dexie implements MemoryDatabaseSchema {
   mediaSessions!: Table<MediaSessionRecord, string>;
   settings!: Table<SettingRecord, string>;
   timelineEntries!: Table<TimelineEntryRecord, string>;
+  contentAnalyses!: Table<ContentAnalysisRecord, string>;
 
   constructor() {
     super('semantic_memory');
@@ -49,6 +51,17 @@ class SemanticMemoryDatabase extends Dexie implements MemoryDatabaseSchema {
       mediaSessions: '&id, pageId, kind, startedAt, endedAt',
       settings: '&key',
       timelineEntries: '&id, type, createdAt, sessionId, tags, relatedPageIds'
+    });
+
+    this.version(4).stores({
+      pages: '&id, url, capturedAt, closedAt, sessionId, topicLabel, windowId, tabId, tabGroupId, lastInteractionAt, visitCount',
+      chunks: '&id, pageId, order',
+      events: '&id, pageId, type, sessionId, timestamp',
+      sessions: '&id, origin, startedAt, endedAt, topicLabel',
+      mediaSessions: '&id, pageId, kind, startedAt, endedAt',
+      settings: '&key',
+      timelineEntries: '&id, type, createdAt, sessionId, tags, relatedPageIds',
+      contentAnalyses: '&id, pageId, analyzedAt, contentType, knowledgeDomain, primaryTopic'
     });
 
     this.pages.mapToClass(class {});

@@ -32,6 +32,27 @@ export const MessageBubble = ({ message }: Props) => {
 
   return (
     <div className="space-y-3">
+      {/* Show Sources First - More Prominent */}
+      {message.citations?.length ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">📚 Sources ({message.citations.length}):</p>
+          <ul className="flex flex-wrap gap-2">
+            {message.citations.map((citation) => (
+              <li key={citation.href}>
+                <a 
+                  href={citation.href} 
+                  className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-100 font-medium" 
+                  target="_blank" 
+                  rel="noreferrer"
+                >
+                  {citation.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      
       <div className={clsx('whitespace-pre-line leading-relaxed', isError && 'text-red-600')}>
         {content}
       </div>
@@ -45,29 +66,9 @@ export const MessageBubble = ({ message }: Props) => {
         </div>
       ) : null}
       
-      {message.citations?.length ? (
-        <div className="mt-4 space-y-2">
-          <p className="text-sm font-medium text-gray-700">Sources:</p>
-          <ul className="flex flex-wrap gap-2">
-            {message.citations.map((citation) => (
-              <li key={citation.href}>
-                <a 
-                  href={citation.href} 
-                  className="inline-flex items-center rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100" 
-                  target="_blank" 
-                  rel="noreferrer"
-                >
-                  {citation.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      
       {message.evidence?.length ? (
         <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-600">Context Used</p>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-600">Additional Context</p>
           <ul className="space-y-2 text-sm">
             {message.evidence.map((item, index) => (
               <li key={`${item.title}-${index}`} className="text-gray-700">
