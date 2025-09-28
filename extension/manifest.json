@@ -31,13 +31,15 @@
     "semantic-memory.close-tabs-to-right": {
       "description": "Mark when the user closes tabs to the right",
       "suggested_key": {
-        "default": "Ctrl+Shift+."
+        "default": "Ctrl+Shift+Period",
+        "mac": "Command+Shift+Period"
       }
     },
     "semantic-memory.close-other-tabs": {
       "description": "Mark when the user closes other tabs",
       "suggested_key": {
-        "default": "Ctrl+Shift+Backslash"
+        "default": "Ctrl+Shift+O",
+        "mac": "Command+Shift+O"
       }
     }
   },
