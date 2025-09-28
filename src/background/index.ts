@@ -28,6 +28,35 @@ chrome.runtime.onInstalled.addListener(() => {
   console.info('Semantic Memory background worker installed.');
 });
 
+// Handle action button click to toggle overlay
+chrome.action.onClicked.addListener(async (tab) => {
+  if (tab.id === undefined) return;
+  
+  try {
+    await chrome.tabs.sendMessage(tab.id, {
+      type: 'semantic-memory:toggle-overlay'
+    });
+  } catch (error) {
+    console.warn('[SemanticMemory] Content script not responding. This may happen on certain pages (e.g., chrome://, extension pages, or pages with strict CSP). Try refreshing the page or using the keyboard shortcut instead.', error);
+  }
+});
+
+// Handle keyboard commands
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === 'semantic-memory.close-tabs-to-right') {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab.id === undefined) return;
+    
+    try {
+      await chrome.tabs.sendMessage(activeTab.id, {
+        type: 'semantic-memory:toggle-overlay'
+      });
+    } catch (error) {
+      console.warn('[SemanticMemory] Failed to toggle overlay via command:', error);
+    }
+  }
+});
+
 registerBehaviourObservers();
 registerDownloadObserver();
 runSessionAggregation().catch((error) => console.warn('recap aggregation failed', error));
@@ -451,7 +480,7 @@ const handleCapture = async (payload: ContentCapturePayload, sender: chrome.runt
 };
 
 chrome.runtime.onMessage.addListener((message: ContentScriptMessage | BackgroundRequest, sender, sendResponse) => {
-  if (!message?.type) return;
+  if (!message?.type) return false;
 
   if (message.type === 'semantic-memory:init') {
     const tabId = sender.tab?.id;
@@ -463,14 +492,14 @@ chrome.runtime.onMessage.addListener((message: ContentScriptMessage | Background
       });
     }
     sendResponse({ ok: true });
-    return;
+    return false;
   }
 
   if (message.type === 'semantic-memory:query') {
     const request = message;
     void handleQueryStream(request);
     sendResponse({ type: 'semantic-memory:query:accepted' });
-    return;
+    return false;
   }
 
   if (message.type === 'semantic-memory:capture') {
@@ -494,4 +523,6 @@ chrome.runtime.onMessage.addListener((message: ContentScriptMessage | Background
       });
     return true;
   }
+
+  return false;
 });

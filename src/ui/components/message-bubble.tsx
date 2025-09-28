@@ -21,7 +21,6 @@ const roleIcon: Record<ChatMessage['role'], JSX.Element> = {
 };
 
 export const MessageBubble = ({ message }: Props) => {
-  const isUser = message.role === 'user';
   const isError = message.status === 'error';
   const isStreaming = message.status === 'streaming';
 
@@ -32,55 +31,54 @@ export const MessageBubble = ({ message }: Props) => {
       : message.content;
 
   return (
-    <article
-      className={clsx(
-        'flex gap-3 rounded-2xl border px-4 py-3 text-sm shadow-sm',
-        isUser
-          ? 'self-end border-primary/30 bg-primary/10 text-slate-100'
-          : 'self-start border-white/5 bg-surface text-slate-200',
-        isError && 'border-red-500/40 bg-red-500/10 text-red-100'
-      )}
-    >
-      <div className={clsx('flex h-8 w-8 items-center justify-center rounded-full', avatarStyles[message.role])}>
-        {roleIcon[message.role]}
+    <div className="space-y-3">
+      <div className={clsx('whitespace-pre-line leading-relaxed', isError && 'text-red-600')}>
+        {content}
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <MessageMetadata message={message} />
-        <p className={clsx('whitespace-pre-line leading-relaxed', isError && 'text-red-200')}>
-          {content}
-        </p>
-        {isStreaming ? (
-          <span className="mt-2 text-xs text-primary/70">Streaming from your semantic memory...</span>
-        ) : null}
-        {message.citations?.length ? (
-          <ul className="mt-3 flex flex-wrap gap-2 text-xs text-primary">
+      
+      {isStreaming ? (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="h-1 w-1 animate-pulse rounded-full bg-gray-400"></div>
+          <div className="h-1 w-1 animate-pulse rounded-full bg-gray-400" style={{ animationDelay: '0.1s' }}></div>
+          <div className="h-1 w-1 animate-pulse rounded-full bg-gray-400" style={{ animationDelay: '0.2s' }}></div>
+          <span>Searching your memory...</span>
+        </div>
+      ) : null}
+      
+      {message.citations?.length ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-sm font-medium text-gray-700">Sources:</p>
+          <ul className="flex flex-wrap gap-2">
             {message.citations.map((citation) => (
-              <li
-                key={citation.href}
-                className="rounded-full border border-primary/30 bg-primary/10 px-2 py-1"
-              >
-                <a href={citation.href} className="hover:underline" target="_blank" rel="noreferrer">
+              <li key={citation.href}>
+                <a 
+                  href={citation.href} 
+                  className="inline-flex items-center rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100" 
+                  target="_blank" 
+                  rel="noreferrer"
+                >
                   {citation.label}
                 </a>
               </li>
             ))}
           </ul>
-        ) : null}
-        {message.evidence?.length ? (
-          <div className="mt-3 space-y-2 rounded-xl border border-white/5 bg-white/5 p-3 text-xs text-slate-300">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">Context used</p>
-            <ul className="space-y-2">
-              {message.evidence.map((item, index) => (
-                <li key={`${item.title}-${index}`} className="leading-snug">
-                  <span className="font-medium text-slate-200">{item.title}</span>
-                  <span className="mx-1 text-slate-500">•</span>
-                  <span>{item.snippet}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </div>
-    </article>
+        </div>
+      ) : null}
+      
+      {message.evidence?.length ? (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-600">Context Used</p>
+          <ul className="space-y-2 text-sm">
+            {message.evidence.map((item, index) => (
+              <li key={`${item.title}-${index}`} className="text-gray-700">
+                <span className="font-medium">{item.title}</span>
+                <span className="mx-1 text-gray-400">•</span>
+                <span className="text-gray-600">{item.snippet}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 };

@@ -83,7 +83,7 @@ export const responsesRoute: FastifyPluginAsync = async (fastify) => {
 
       try {
         const response = await client.responses.create({
-          model: 'gpt-5.1-mini',
+          model: 'gpt-5-mini',
           input: body.prompt,
           temperature: body.temperature,
           metadata: buildMetadata(body.context)
@@ -115,7 +115,7 @@ export const responsesRoute: FastifyPluginAsync = async (fastify) => {
 
     try {
       const gptResponse = await client.responses.create({
-        model: 'gpt-5.1-mini',
+        model: 'gpt-5-mini',
         input: body.prompt,
         temperature: body.temperature,
         metadata: buildMetadata(body.context)
